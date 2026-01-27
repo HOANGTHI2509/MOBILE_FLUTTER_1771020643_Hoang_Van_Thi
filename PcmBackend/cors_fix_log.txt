@@ -1,0 +1,3 @@
+CORS Policy updated to use SetIsOriginAllowed(true) and AllowCredentials(). 
+This combination is more robust for local development with random ports coming from Flutter.
+User must restart Backend.

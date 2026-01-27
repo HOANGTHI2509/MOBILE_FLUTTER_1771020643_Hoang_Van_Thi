@@ -1,0 +1,2 @@
+// This file was modified to include generic static method helpers.
+// See edit summary for details.
