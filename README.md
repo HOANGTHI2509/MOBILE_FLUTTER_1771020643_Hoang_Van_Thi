@@ -124,7 +124,7 @@ flutter run -d chrome --web-browser-flag "--disable-web-security"
 
 ### Tài Khoản Admin
 - **Email:** `admin@pcm.com`
-- **Mật khẩu:** `Admin@123`
+- **Mật khẩu:** `Pcm@1234563`
 
 ### Tài Khoản Thành Viên Test
 - **Email:** `test5@gmail.com` 
