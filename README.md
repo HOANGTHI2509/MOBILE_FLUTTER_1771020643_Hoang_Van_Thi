@@ -262,13 +262,6 @@ dotnet run
 
 ---
 
-## 📚 Tài Liệu
-
-- **Kế hoạch triển khai:** `.gemini/brain/.../implementation_plan.md`
-- **Theo dõi công việc:** `.gemini/brain/.../task.md`
-- **Hướng dẫn chi tiết:** `.gemini/brain/.../walkthrough.md`
-- **Hướng dẫn test:** `TEST_CANCEL_BOOKING.md`
-
 ---
 
 ## 🤝 Đóng Góp
