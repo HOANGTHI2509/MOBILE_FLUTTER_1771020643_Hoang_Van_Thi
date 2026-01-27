@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../providers/auth_provider_643.dart';
 import '../providers/booking_provider.dart';
 import '../providers/court_provider.dart';
+import '../providers/wallet_provider.dart';
 import '../models/court_643.dart';
 import '../models/booking_643.dart';
 import '../services/signalr_service.dart';
@@ -137,9 +138,10 @@ class _BookingScreenState extends State<BookingScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Đặt sân THÀNH CÔNG!'), backgroundColor: Colors.green),
       );
-      // Reload lại data tiền và lịch
+      // Reload lại data tiền, lịch và lịch sử giao dịch
       auth.getProfile(); 
       _loadData();
+      context.read<WalletProvider>().refresh(); // Cập nhật lịch sử giao dịch
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Đặt sân THẤT BẠI. Kiểm tra số dư hoặc trùng lịch!'), backgroundColor: Colors.red),
@@ -330,9 +332,10 @@ class _BookingScreenState extends State<BookingScreen> {
           backgroundColor: Colors.green,
         ),
       );
-      // Reload data
+      // Reload data và lịch sử giao dịch
       auth.getProfile();
       _loadData();
+      context.read<WalletProvider>().refresh(); // Cập nhật lịch sử giao dịch
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Hủy sân THẤT BẠI!'), backgroundColor: Colors.red),

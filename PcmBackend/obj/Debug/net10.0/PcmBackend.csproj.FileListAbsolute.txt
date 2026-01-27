@@ -160,3 +160,4 @@ C:\Users\Admin\Downloads\BKT_Mobile\PcmBackend\obj\Debug\net10.0\refint\PcmBacke
 C:\Users\Admin\Downloads\BKT_Mobile\PcmBackend\obj\Debug\net10.0\PcmBackend.pdb
 C:\Users\Admin\Downloads\BKT_Mobile\PcmBackend\obj\Debug\net10.0\PcmBackend.genruntimeconfig.cache
 C:\Users\Admin\Downloads\BKT_Mobile\PcmBackend\obj\Debug\net10.0\ref\PcmBackend.dll
+C:\Users\Admin\Downloads\BKT_Mobile\PcmBackend\obj\Debug\net10.0\PcmBackend.sourcelink.json

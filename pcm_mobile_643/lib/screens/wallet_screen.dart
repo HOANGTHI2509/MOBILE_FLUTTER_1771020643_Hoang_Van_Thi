@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart' as import_dio;
 import 'dart:io';
 import '../providers/auth_provider_643.dart';
+import '../providers/wallet_provider.dart';
 import '../services/api_service.dart';
 
 class WalletScreen extends StatefulWidget {
@@ -15,26 +16,13 @@ class WalletScreen extends StatefulWidget {
 }
 
 class _WalletScreenState extends State<WalletScreen> {
-  List<dynamic> _transactions = [];
-  bool _isLoading = true;
-
   @override
   void initState() {
     super.initState();
-    _loadTransactions();
-  }
-
-  Future<void> _loadTransactions() async {
-    try {
-      final response = await ApiService.get('Wallet/transactions');
-      setState(() {
-        _transactions = response.data;
-        _isLoading = false;
-      });
-    } catch (e) {
-      print(e);
-      setState(() => _isLoading = false);
-    }
+    // Load transactions khi vào màn hình
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<WalletProvider>().fetchTransactions();
+    });
   }
 
   Future<void> _showDepositDialog(BuildContext context) async {
@@ -155,7 +143,7 @@ class _WalletScreenState extends State<WalletScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Đã gửi yêu cầu nạp tiền! Chờ Admin duyệt.'), backgroundColor: Colors.green)
                             );
-                            _loadTransactions(); // Reload history
+                            context.read<WalletProvider>().refresh(); // Reload history
                           } catch (e) {
                             print("❌ [Deposit] Error: $e");
                             if (e is import_dio.DioException) {
@@ -185,6 +173,7 @@ class _WalletScreenState extends State<WalletScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider643>();
+    final walletProvider = context.watch<WalletProvider>();
     final member = authProvider.member;
     final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
 
@@ -217,30 +206,53 @@ class _WalletScreenState extends State<WalletScreen> {
           ),
           
           Expanded(
-            child: _isLoading 
+            child: walletProvider.isLoading 
               ? const Center(child: CircularProgressIndicator())
               : ListView.separated(
-                  itemCount: _transactions.length,
+                  itemCount: walletProvider.transactions.length,
                   separatorBuilder: (ctx, i) => const Divider(),
                   itemBuilder: (ctx, i) {
-                    final trans = _transactions[i];
-                    final type = trans['type']; // 0: Payment, 1: Deposit, 2: Refund
-                    final status = trans['status']; // 0: Pending, 1: Completed, 2: Failed
+                    final trans = walletProvider.transactions[i];
+                    final type = trans['type']; // 0: Payment, 1: Deposit, 2: Refund, 3: Reward
+                    final status = trans['status']; // 0: Pending, 1: Completed, 2: Rejected, 3: Failed
 
-                    final bool isPlus = (type == 1 && status == 1) || type == 2;
+                    final bool isPlus = (type == 1 && status == 1) || type == 2 || type == 4;
                     final double amount = (trans['amount'] ?? 0).toDouble();
                     
                     Color color = Colors.grey;
                     IconData icon = Icons.history;
+                    String statusText = '';
                     
                     if (type == 1) { // Deposit
-                      if (status == 0) { color = Colors.orange; icon = Icons.access_time; } // Pending
-                      else if (status == 1) { color = Colors.green; icon = Icons.arrow_downward; }
-                      else { color = Colors.red; icon = Icons.error; }
+                      if (status == 0) { 
+                        color = Colors.orange; 
+                        icon = Icons.access_time; 
+                        statusText = 'Đang chờ duyệt';
+                      } else if (status == 1) { 
+                        color = Colors.green; 
+                        icon = Icons.check_circle; 
+                        statusText = 'Nạp thành công';
+                      } else if (status == 2) { 
+                        color = Colors.red; 
+                        icon = Icons.cancel; 
+                        statusText = 'Bị từ chối';
+                      } else { 
+                        color = Colors.grey; 
+                        icon = Icons.error; 
+                        statusText = 'Thất bại';
+                      }
                     } else if (type == 0) { // Payment
-                       color = Colors.red; icon = Icons.arrow_upward;
-                    } else { // Refund
-                       color = Colors.blue; icon = Icons.refresh;
+                       color = Colors.red; 
+                       icon = Icons.arrow_upward;
+                       statusText = 'Thanh toán';
+                    } else if (type == 3) { // Refund
+                       color = Colors.blue; 
+                       icon = Icons.refresh;
+                       statusText = 'Hoàn tiền';
+                    } else if (type == 4) { // Reward
+                       color = Colors.amber; 
+                       icon = Icons.emoji_events;
+                       statusText = 'Thưởng';
                     }
 
                     return ListTile(
@@ -249,7 +261,26 @@ class _WalletScreenState extends State<WalletScreen> {
                         child: Icon(icon, color: color),
                       ),
                       title: Text(trans['description'] ?? 'Giao dịch'),
-                      subtitle: Text(trans['createdDate'] != null ? DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(trans['createdDate'])) : ''),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(trans['createdDate'] != null ? DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(trans['createdDate'])) : ''),
+                          if (statusText.isNotEmpty)
+                            Container(
+                              margin: const EdgeInsets.only(top: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: color.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: color.withOpacity(0.3)),
+                              ),
+                              child: Text(
+                                statusText,
+                                style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                        ],
+                      ),
                       trailing: Text(
                         '${isPlus ? '+' : ''}${currencyFormat.format(amount)}',
                         style: TextStyle(color: color, fontWeight: FontWeight.bold),

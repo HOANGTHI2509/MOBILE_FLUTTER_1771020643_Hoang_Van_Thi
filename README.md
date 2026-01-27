@@ -124,7 +124,7 @@ flutter run -d chrome --web-browser-flag "--disable-web-security"
 
 ### Tài Khoản Admin
 - **Email:** `admin@pcm.com`
-- **Mật khẩu:** `Admin@123`
+- **Mật khẩu:** `Pcm@1234563`
 
 ### Tài Khoản Thành Viên Test
 - **Email:** `test5@gmail.com` 
@@ -261,13 +261,6 @@ dotnet run
 - ✅ Tự động tạo member records
 
 ---
-
-## 📚 Tài Liệu
-
-- **Kế hoạch triển khai:** `.gemini/brain/.../implementation_plan.md`
-- **Theo dõi công việc:** `.gemini/brain/.../task.md`
-- **Hướng dẫn chi tiết:** `.gemini/brain/.../walkthrough.md`
-- **Hướng dẫn test:** `TEST_CANCEL_BOOKING.md`
 
 ---
 
