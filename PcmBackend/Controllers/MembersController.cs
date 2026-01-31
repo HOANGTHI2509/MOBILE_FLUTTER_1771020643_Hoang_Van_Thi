@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using PcmBackend.Data;
 using PcmBackend.Models;
 using System.Security.Claims;
+using Microsoft.AspNetCore.SignalR;
+using PcmBackend.Hubs;
 
 namespace PcmBackend.Controllers;
 
@@ -14,11 +16,39 @@ namespace PcmBackend.Controllers;
 public class MembersController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly IHubContext<PcmHub> _hubContext;
 
-    public MembersController(ApplicationDbContext context)
+    public MembersController(ApplicationDbContext context, IHubContext<PcmHub> hubContext)
     {
         _context = context;
+        _hubContext = hubContext;
     }
+
+    // ... (Existing Methods)
+
+    // [Admin] Approve Deposit
+    [HttpPost("{transactionId}/approve-deposit")]
+    public async Task<IActionResult> ApproveDeposit(int transactionId)
+    {
+        var transaction = await _context.WalletTransactions.Include(t => t.Member).FirstOrDefaultAsync(t => t.Id == transactionId);
+        if (transaction == null) return NotFound("Transaction not found");
+
+        if (transaction.Status == TransactionStatus.Completed) return BadRequest("Already completed");
+        if (transaction.Type != TransactionType.Deposit) return BadRequest("Not a deposit transaction");
+
+        // Update Wallet
+        transaction.Status = TransactionStatus.Completed;
+        transaction.Member.WalletBalance += transaction.Amount;
+        
+        await _context.SaveChangesAsync();
+
+        // Notify User
+        // Note: member.UserId must match the SignalR UserIdentifier used by the client connection
+        await _hubContext.Clients.User(transaction.Member.UserId).SendAsync("ReceiveNotification", $"Nạp tiền thành công! +{transaction.Amount:N0}đ");
+
+        return Ok(new { message = "Deposit approved", newBalance = transaction.Member.WalletBalance });
+    }
+
 
     // Lấy thông tin cá nhân và số dư ví
     [HttpGet("profile")]
@@ -146,14 +176,14 @@ public class MembersController : ControllerBase
     // [Admin] Lock/Unlock
     [HttpPut("{id}/status")]
     // [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> UpdateStatus(int id, [FromBody] bool isActive)
+    public async Task<IActionResult> UpdateStatus(int id, [FromBody] StatusUpdateDto update)
     {
         var member = await _context.Members.FindAsync(id);
         if (member == null) return NotFound();
 
-        member.IsActive = isActive;
+        member.IsActive = update.IsActive;
         await _context.SaveChangesAsync();
-        return Ok(new { message = $"Member status updated to {isActive}" });
+        return Ok(new { message = $"Member status updated to {update.IsActive}" });
     }
 
     // [Admin] Update Rank/Tier
@@ -164,11 +194,47 @@ public class MembersController : ControllerBase
         var member = await _context.Members.FindAsync(id);
         if (member == null) return NotFound();
 
-        if (request.RankLevel.HasValue) member.RankLevel = request.RankLevel.Value;
+        bool rankChanged = false;
+        double oldRank = member.RankLevel;
+
+        if (request.RankLevel.HasValue && request.RankLevel.Value != member.RankLevel) 
+        {
+            member.RankLevel = request.RankLevel.Value;
+            rankChanged = true;
+        }
         if (request.Tier.HasValue) member.Tier = request.Tier.Value;
+
+        if (rankChanged)
+        {
+             var history = new RankHistory 
+             {
+                 MemberId = member.Id,
+                 RankLevel = member.RankLevel,
+                 Reason = "Admin Update",
+                 CreatedDate = DateTime.Now
+             };
+             _context.RankHistories.Add(history);
+        }
 
         await _context.SaveChangesAsync();
         return Ok(new { message = "Member rank/tier updated" });
+    }
+
+    // Get Rank History (For Chart)
+    [HttpGet("rank-history")]
+    public async Task<ActionResult<IEnumerable<RankHistory>>> GetRankHistory()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        // Find member first
+        var member = await _context.Members.FirstOrDefaultAsync(m => m.UserId == userId);
+        if (member == null) return NotFound("Member not found");
+
+        var history = await _context.RankHistories
+            .Where(h => h.MemberId == member.Id)
+            .OrderBy(h => h.CreatedDate)
+            .ToListAsync();
+
+        return Ok(history);
     }
 }
 

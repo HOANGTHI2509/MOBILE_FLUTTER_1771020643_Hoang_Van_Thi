@@ -8,15 +8,19 @@ import '../screens/login_screen.dart';
 class ApiService {
   // Logic tự động chọn URL dựa trên môi trường chạy (Web, Android Emulator, iOS/Windows)
   static String get baseUrl {
-    if (kIsWeb) {
-      print("🌐 [Web] Using API Base URL: http://localhost:5282");
-      return 'http://localhost:5282'; 
-    } else if (defaultTargetPlatform == TargetPlatform.android) {
-      print("📱 [Android] Using API Base URL: http://10.0.2.2:5282");
-      return 'http://10.0.2.2:5282';
-    } else {
-      return 'http://localhost:5282';
-    }
+    // Để deploy lên VPS, ta dùng IP của VPS
+    return 'http://103.77.172.159:5000'; 
+    
+    // Logic tự động
+    // if (kIsWeb) {
+    //   return 'http://localhost:5282'; 
+    // } else if (defaultTargetPlatform == TargetPlatform.android) {
+    //   // Khi chạy máy thật Android, thay 10.0.2.2 bằng IP thật của máy tính/server
+    //   // Ví dụ: return 'http://192.168.1.5:5282'; 
+    //   return 'http://10.0.2.2:5282';
+    // } else {
+    //   return 'http://localhost:5282';
+    // }
   }
 
   final Dio _dio = Dio(BaseOptions(
@@ -101,6 +105,23 @@ class ApiService {
     }
   }
 
+  // Hàm lấy lịch sử Rank
+  Future<List<dynamic>?> getRankHistory(String token) async {
+    try {
+      final response = await _dio.get(
+        '/api/Members/rank-history',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200) {
+        return response.data; // List of maps
+      }
+      return [];
+    } catch (e) {
+      print("❌ GetRankHistory Error: $e");
+      return [];
+    }
+  }
+
   // --- Static Helpers for Generic Usage (Admin screens) ---
 
   // Lấy token hiện tại
@@ -139,5 +160,12 @@ class ApiService {
     final dio = Dio(BaseOptions(baseUrl: baseUrl));
     if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
     return await dio.post('/api/$endpoint', data: formData);
+  }
+  // Generic DELETE
+  static Future<Response> delete(String endpoint) async {
+    final token = await _getToken();
+    final dio = Dio(BaseOptions(baseUrl: baseUrl));
+    if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
+    return await dio.delete('/api/$endpoint');
   }
 }

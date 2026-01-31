@@ -1,0 +1,19 @@
+[Unit]
+Description=PCM Backend .NET App
+After=network.target
+
+[Service]
+WorkingDirectory=/var/www/pcm-backend
+ExecStart=/usr/bin/dotnet /var/www/pcm-backend/PcmBackend.dll
+Restart=always
+# Restart service after 10 seconds if the dotnet service crashes:
+RestartSec=10
+KillSignal=SIGINT
+SyslogIdentifier=pcm-backend
+User=root
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
+Environment=ASPNETCORE_URLS=http://0.0.0.0:5000
+
+[Install]
+WantedBy=multi-user.target

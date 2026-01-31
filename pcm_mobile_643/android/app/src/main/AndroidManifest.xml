@@ -4,7 +4,7 @@
     <application
         android:label="pcm_mobile_643"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/launcher_icon"
         android:usesCleartextTraffic="true">
         
         <activity

@@ -42,8 +42,24 @@ public class AdminWalletController : ControllerBase
         var totalDeposit = monthlyTrans.Where(t => t.Type == TransactionType.Deposit && t.Status == TransactionStatus.Completed).Sum(t => t.Amount);
         var totalPayment = monthlyTrans.Where(t => t.Type == TransactionType.Payment && t.Status == TransactionStatus.Completed).Sum(t => Math.Abs(t.Amount));
         var totalRefund = monthlyTrans.Where(t => t.Type == TransactionType.Refund).Sum(t => t.Amount);
+
+        // Weekly Breakdown for Current Month (W1, W2, W3, W4)
+        var weeklyStats = monthlyTrans
+            .Where(t => t.Type == TransactionType.Deposit && t.Status == TransactionStatus.Completed)
+            .GroupBy(t => (t.CreatedDate.Day - 1) / 7 + 1) // Simple week calc: 1-7=W1, 8-14=W2...
+            .Select(g => new { Week = g.Key, Amount = g.Sum(t => t.Amount) })
+            .OrderBy(x => x.Week)
+            .ToList();
         
-        // 6-month chart data
+        // Ensure 4 weeks are present
+        var finalWeeklyStats = new List<object>();
+        for (int i = 1; i <= 4; i++)
+        {
+            var weekData = weeklyStats.FirstOrDefault(w => w.Week == i);
+            finalWeeklyStats.Add(new { Week = i, Amount = weekData?.Amount ?? 0 });
+        }
+        
+        // 6-month chart data (keeping existing logic)
         var chartData = await _context.WalletTransactions
             .Where(t => t.CreatedDate >= now.AddMonths(-5))
             .GroupBy(t => new { t.CreatedDate.Year, t.CreatedDate.Month })
@@ -57,6 +73,7 @@ public class AdminWalletController : ControllerBase
             
         return Ok(new { 
             CurrentMonth = new { TotalDeposit = totalDeposit, TotalPayment = totalPayment, TotalRefund = totalRefund },
+            WeeklyStats = finalWeeklyStats,
             ChartData = chartData
         });
     }

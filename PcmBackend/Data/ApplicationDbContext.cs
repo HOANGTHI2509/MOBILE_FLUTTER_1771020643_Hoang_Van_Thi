@@ -20,6 +20,7 @@ public class ApplicationDbContext : IdentityDbContext
     public DbSet<TournamentParticipant> TournamentParticipants { get; set; }
     public DbSet<Match> Matches { get; set; }
     public DbSet<Notification> Notifications { get; set; }
+    public DbSet<RankHistory> RankHistories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -36,6 +37,7 @@ public class ApplicationDbContext : IdentityDbContext
         builder.Entity<TournamentParticipant>().ToTable("643_TournamentParticipants");
         builder.Entity<Match>().ToTable("643_Matches");
         builder.Entity<Notification>().ToTable("643_Notifications");
+        builder.Entity<RankHistory>().ToTable("643_RankHistory");
 
         // Cấu hình kiểu dữ liệu tiền tệ (decimal) để tránh lỗi làm tròn
         builder.Entity<Member>().Property(m => m.WalletBalance).HasPrecision(18, 2);

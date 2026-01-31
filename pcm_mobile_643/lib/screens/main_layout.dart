@@ -7,7 +7,9 @@ import 'tournament_list_screen.dart';
 import 'wallet_screen.dart';
 import 'admin_dashboard_screen.dart';
 import 'profile_screen.dart';
-import '../services/signalr_service.dart'; // Will create this next
+import '../services/signalr_service.dart';
+import '../providers/notification_provider.dart';
+import '../models/notification_643.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -23,8 +25,13 @@ class _MainLayoutState extends State<MainLayout> {
   void initState() {
     super.initState();
     // Khởi tạo SignalR để nghe thông báo Realtime
-    SignalRService().initSignalR();
+    final token = context.read<AuthProvider643>().token;
+    SignalRService().initSignalR(token);
     SignalRService().onNotificationReceived = (message) {
+      // 1. Add to Provider (Badge update)
+      context.read<NotificationProvider>().addNotification(message, type: NotificationType.Info);
+      
+      // 2. Show Toast
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message), 

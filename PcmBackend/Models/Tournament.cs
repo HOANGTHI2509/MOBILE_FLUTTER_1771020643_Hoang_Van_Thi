@@ -29,4 +29,7 @@ public class Tournament
     public TournamentStatus Status { get; set; } = TournamentStatus.Open;
     
     public string? Settings { get; set; } // JSON
+
+    [NotMapped]
+    public bool IsJoined { get; set; }
 }

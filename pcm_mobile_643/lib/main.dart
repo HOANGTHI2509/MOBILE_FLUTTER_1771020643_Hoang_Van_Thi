@@ -6,6 +6,7 @@ import 'providers/booking_provider.dart';
 import 'providers/tournament_provider.dart';
 import 'providers/match_provider.dart';
 import 'providers/wallet_provider.dart';
+import 'providers/notification_provider.dart';
 import 'screens/login_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -26,6 +27,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => TournamentProvider()),
         ChangeNotifierProvider(create: (_) => MatchProvider()),
         ChangeNotifierProvider(create: (_) => WalletProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: const PcmApp(),
     ),

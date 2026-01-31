@@ -3,16 +3,20 @@ class Member643 {
   final String email;
   final String fullName;
   final double walletBalance;
+  final double totalSpent;
   final String tier;
-  final bool isAdmin;
+  final String? avatarUrl;
+  final bool isAdmin; // Restored (was accidentally removed)
 
   Member643({
     required this.id,
     required this.email,
     required this.fullName,
     required this.walletBalance,
+    required this.totalSpent,
     required this.tier,
     this.isAdmin = false,
+    this.avatarUrl,
   });
 
   factory Member643.fromJson(Map<String, dynamic> json) {
@@ -24,8 +28,10 @@ class Member643 {
       email: json['email'] ?? '',
       fullName: json['fullName'] ?? 'Hội viên 643',
       walletBalance: (json['walletBalance'] ?? 0).toDouble(),
+      totalSpent: (json['totalSpent'] ?? 0).toDouble(),
       tier: json['tier'] == 1 ? 'Silver' : (json['tier'] == 2 ? 'Gold' : (json['tier'] == 3 ? 'Diamond' : 'Standard')), 
       isAdmin: json['isAdmin'] == true || json['IsAdmin'] == true,
+      avatarUrl: json['avatarUrl'],
     );
   }
 }

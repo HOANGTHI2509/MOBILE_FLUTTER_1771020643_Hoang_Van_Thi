@@ -10,14 +10,20 @@ public static class SeedData
     {
         using var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
         using var userManager = serviceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        using var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
         // update database
         await context.Database.MigrateAsync();
 
-        // 0. Seed Users (Admin, Treasurer, Referee)
+        // 0. Seed Roles
         string[] roles = { "Admin", "Treasurer", "Referee", "Member" };
-        // Note: In this simple setup with IdentityApiEndpoints, we might not have RoleManager set up explicitly in Program.cs
-        // But we can create Users.
+        foreach (var role in roles)
+        {
+            if (!await roleManager.RoleExistsAsync(role))
+            {
+                await roleManager.CreateAsync(new IdentityRole(role));
+            }
+        }
 
         // 1. Admin
         var adminUser = await userManager.FindByEmailAsync("admin@pcm.com");
@@ -25,6 +31,12 @@ public static class SeedData
         {
             adminUser = new IdentityUser { UserName = "admin@pcm.com", Email = "admin@pcm.com" };
             await userManager.CreateAsync(adminUser, "Pcm@123456");
+        }
+        
+        // Assign Admin role
+        if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
+        {
+            await userManager.AddToRoleAsync(adminUser, "Admin");
         }
 
         // Ensure Admin has a Member record

@@ -49,4 +49,18 @@ class TournamentProvider extends ChangeNotifier {
       return false;
     }
   }
+
+  Future<bool> leaveTournament(String token, int tournamentId) async {
+    try {
+      final dio = Dio(BaseOptions(baseUrl: ApiService.baseUrl));
+      final response = await dio.post(
+        '/api/tournaments/$tournamentId/leave',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Error leaving tournament: $e");
+      return false;
+    }
+  }
 }

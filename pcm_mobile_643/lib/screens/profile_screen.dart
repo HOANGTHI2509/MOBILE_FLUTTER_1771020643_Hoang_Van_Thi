@@ -45,7 +45,7 @@ class ProfileScreen extends StatelessWidget {
                 child: Text(member.fullName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               ),
               Center(
-                child: Text('Hạng: ${member.tier}', style: const TextStyle(color: Colors.blueGrey, fontSize: 16)),
+                child: _buildTierBadge(member.tier),
               ),
               const SizedBox(height: 30),
               _buildProfileItem(Icons.email, 'Email', member.email),
@@ -93,6 +93,47 @@ class ProfileScreen extends StatelessWidget {
               Text(value, style: const TextStyle(fontSize: 16)),
             ],
           )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTierBadge(String tier) {
+    Color color;
+    IconData icon;
+    
+    switch (tier.toLowerCase()) {
+      case 'gold':
+        color = Colors.amber;
+        icon = Icons.star;
+        break;
+      case 'diamond':
+        color = Colors.blue.shade300;
+        icon = Icons.diamond;
+        break;
+      case 'silver':
+        color = Colors.blueGrey;
+        icon = Icons.shield;
+        break;
+      default:
+        color = Colors.brown.shade300; // Bronze/Standard
+        icon = Icons.person;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        border: Border.all(color: color),
+        borderRadius: BorderRadius.circular(20)
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 8),
+          Text(tier.toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.bold)),
         ],
       ),
     );

@@ -37,18 +37,57 @@ class BookingProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> createBooking(String token, Map<String, dynamic> bookingData) async {
+  Future<Booking643?> holdBooking(String token, Map<String, dynamic> bookingData) async {
     try {
       final dio = Dio(BaseOptions(baseUrl: ApiService.baseUrl));
       final response = await dio.post(
-        '/api/bookings',
+        '/api/bookings/hold',
         data: bookingData,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
-      return response.statusCode == 201;
+      if (response.statusCode == 201) {
+        return Booking643.fromJson(response.data);
+      }
+      return null;
     } catch (e) {
-      print("Error creating booking: $e");
+      print("Error holding booking: $e");
+      return null;
+    }
+  }
+
+  Future<bool> confirmBooking(String token, int bookingId) async {
+    try {
+      final dio = Dio(BaseOptions(baseUrl: ApiService.baseUrl));
+      final response = await dio.post(
+        '/api/bookings/confirm/$bookingId',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Error confirming booking: $e");
       return false;
+    }
+  }
+
+  Future<String?> createRecurringBooking(String token, Map<String, dynamic> data) async {
+    try {
+      final dio = Dio(BaseOptions(baseUrl: ApiService.baseUrl));
+      final response = await dio.post(
+        '/api/bookings/recurring',
+        data: data,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200) {
+        return null; // Success (no error message)
+      }
+      return "Lỗi không xác định";
+    } on DioException catch (e) {
+      if (e.response != null) {
+        return e.response?.data.toString();
+      }
+      return e.message;
+    } catch (e) {
+      return e.toString();
     }
   }
 

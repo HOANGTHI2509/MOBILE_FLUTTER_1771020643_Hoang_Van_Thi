@@ -10,6 +10,11 @@ public class PcmHub : Hub
         await Groups.AddToGroupAsync(Context.ConnectionId, $"Match_{matchId}");
     }
 
+    public async Task LeaveMatchGroup(string matchId)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"Match_{matchId}");
+    }
+
     // Server dùng hàm này để gửi noti (demo)
     public async Task SendNotification(string userId, string message)
     {

@@ -473,6 +473,34 @@ namespace PcmBackend.Migrations
                     b.ToTable("643_Notifications", (string)null);
                 });
 
+            modelBuilder.Entity("PcmBackend.Models.RankHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("MemberId")
+                        .HasColumnType("int");
+
+                    b.Property<double>("RankLevel")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MemberId");
+
+                    b.ToTable("643_RankHistory", (string)null);
+                });
+
             modelBuilder.Entity("PcmBackend.Models.Tournament", b =>
                 {
                     b.Property<int>("Id")
@@ -696,6 +724,17 @@ namespace PcmBackend.Migrations
                         .IsRequired();
 
                     b.Navigation("Receiver");
+                });
+
+            modelBuilder.Entity("PcmBackend.Models.RankHistory", b =>
+                {
+                    b.HasOne("PcmBackend.Models.Member", "Member")
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Member");
                 });
 
             modelBuilder.Entity("PcmBackend.Models.TournamentParticipant", b =>

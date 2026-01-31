@@ -10,6 +10,7 @@ class Tournament643 {
   final double entryFee;
   final double prizePool;
   final TournamentStatus status;
+  final bool isJoined;
 
   Tournament643({
     required this.id,
@@ -20,6 +21,7 @@ class Tournament643 {
     required this.entryFee,
     required this.prizePool,
     required this.status,
+    this.isJoined = false,
   });
 
   factory Tournament643.fromJson(Map<String, dynamic> json) {
@@ -32,6 +34,7 @@ class Tournament643 {
       entryFee: (json['entryFee'] ?? 0).toDouble(),
       prizePool: (json['prizePool'] ?? 0).toDouble(),
       status: TournamentStatus.values[json['status'] ?? 0],
+      isJoined: json['isJoined'] ?? false,
     );
   }
 }

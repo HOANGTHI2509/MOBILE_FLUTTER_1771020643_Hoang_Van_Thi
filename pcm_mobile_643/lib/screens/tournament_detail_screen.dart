@@ -18,9 +18,74 @@ class TournamentDetailScreen extends StatelessWidget {
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đăng ký tham gia thành công!'), backgroundColor: Colors.green));
       auth.getProfile(); // Reload wallet
+      Navigator.pop(context); // Go back to list to see updated status (needs refresh)
     } else {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đăng ký thất bại. Kiểm tra số dư hoặc bạn đã tham gia rồi.'), backgroundColor: Colors.red));
     }
+  }
+
+  Future<void> _leaveTournament(BuildContext context) async {
+    final auth = context.read<AuthProvider643>();
+    final success = await context.read<TournamentProvider>().leaveTournament(auth.token!, tournament.id);
+    
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Hủy đăng ký thành công. Đã hoàn 50% phí.'), backgroundColor: Colors.orange));
+      auth.getProfile(); // Reload wallet
+      Navigator.pop(context); // Go back
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Hủy đăng ký thất bại.'), backgroundColor: Colors.red));
+    }
+  }
+
+  void _onCancelPressed(BuildContext context) {
+    final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
+    final refund = currencyFormat.format(tournament.entryFee * 0.5);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Hủy đăng ký?"),
+        content: Text("Bạn sẽ bị phạt 50% phí tham dự.\nBạn sẽ chỉ được hoàn lại: $refund.\n\nBạn có chắc chắn không?"),
+        actions: [
+           TextButton(
+             child: const Text("Quay lại", style: TextStyle(color: Colors.grey)), 
+             onPressed: () => Navigator.pop(ctx)
+           ),
+           ElevatedButton(
+             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+             onPressed: () {
+                Navigator.pop(ctx);
+                _leaveTournament(context);
+             },
+             child: const Text("Xác nhận Hủy", style: TextStyle(color: Colors.white)), 
+           )
+        ]
+      )
+    );
+  }
+
+  void _onJoinPressed(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Xác nhận đăng ký?"),
+        content: const Text("LƯU Ý QUAN TRỌNG: Nếu bạn hủy tham gia sau này, bạn sẽ bị phạt 50% tiền phí tham dự. \n\nBạn có chắc chắn muốn đăng ký không?"),
+        actions: [
+           TextButton(
+             child: const Text("Suy nghĩ lại", style: TextStyle(color: Colors.grey)), 
+             onPressed: () => Navigator.pop(ctx)
+           ),
+           ElevatedButton(
+             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+             onPressed: () {
+                Navigator.pop(ctx);
+                _joinTournament(context);
+             },
+             child: const Text("Đồng ý & Đăng ký", style: TextStyle(color: Colors.white)), 
+           )
+        ]
+      )
+    );
   }
 
   @override
@@ -80,15 +145,40 @@ class TournamentDetailScreen extends StatelessWidget {
              if (tournament.status == TournamentStatus.Registering || tournament.status == TournamentStatus.Open)
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => _joinTournament(context),
-                  icon: const Icon(Icons.person_add),
-                  label: const Text('ĐĂNG KÝ THAM GIA NGAY'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green, 
-                    minimumSize: const Size(double.infinity, 50)
-                  ),
-                ),
+                child: tournament.isJoined 
+                  ? Column(
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: null, // Disable
+                          icon: const Icon(Icons.check_circle, color: Colors.white),
+                          label: const Text('BẠN ĐÃ THAM GIA', style: TextStyle(color: Colors.white)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green, // Visual enabled look but disabled interaction
+                            disabledBackgroundColor: Colors.green,
+                            minimumSize: const Size(double.infinity, 50)
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        OutlinedButton.icon(
+                          onPressed: () => _onCancelPressed(context),
+                          icon: const Icon(Icons.cancel, color: Colors.red),
+                          label: const Text('HỦY ĐĂNG KÝ (Rời giải)', style: TextStyle(color: Colors.red)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.red),
+                            minimumSize: const Size(double.infinity, 50)
+                          ),
+                        )
+                      ],
+                    )
+                  : ElevatedButton.icon(
+                      onPressed: () => _onJoinPressed(context),
+                      icon: const Icon(Icons.person_add),
+                      label: const Text('ĐĂNG KÝ THAM GIA NGAY'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green, 
+                        minimumSize: const Size(double.infinity, 50)
+                      ),
+                    ),
               ),
           ],
         ),

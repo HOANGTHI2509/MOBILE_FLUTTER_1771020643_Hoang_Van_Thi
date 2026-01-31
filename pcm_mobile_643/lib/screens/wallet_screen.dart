@@ -28,6 +28,7 @@ class _WalletScreenState extends State<WalletScreen> {
   Future<void> _showDepositDialog(BuildContext context) async {
     final TextEditingController amountController = TextEditingController();
     XFile? _image;
+    String? _qrUrl;
     
     // ignore: use_build_context_synchronously
     await showModalBottomSheet(
@@ -43,37 +44,90 @@ class _WalletScreenState extends State<WalletScreen> {
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text('Nạp tiền vào Ví', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                  // QR Code
-                  Container(
-                    height: 150,
-                    width: 150,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Image.asset('assets/image.png', fit: BoxFit.cover,
-                      errorBuilder: (c, o, s) => const Icon(Icons.qr_code, size: 80, color: Colors.grey),
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  const Text('Quét mã QR để chuyển khoản', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  const SizedBox(height: 20),
+                   const Text('Nạp tiền vào Ví', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                   const SizedBox(height: 15),
 
-                  TextField(
+                   // 1. Nhập tiền trước
+                   TextField(
                     controller: amountController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                      labelText: 'Số tiền nạp (VNĐ)',
+                      labelText: 'Nhập số tiền cần nạp (VNĐ)',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.attach_money),
+                      hintText: 'VD: 100000'
                     ),
+                    onChanged: (value) {
+                      // Reset QR khi sửa tiền
+                      if (_qrUrl != null) {
+                         setModalState(() { _qrUrl = null; });
+                      }
+                    },
                   ),
                   const SizedBox(height: 10),
+
+                  // 2. Nút Tạo QR Invoice
+                  if (_qrUrl == null)
+                    ElevatedButton.icon(
+                      onPressed: () {
+                         final double? amount = double.tryParse(amountController.text);
+                         if (amount == null || amount < 10000) {
+                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập số tiền tối thiểu 10.000đ')));
+                           return;
+                         }
+                         // Tạo link VietQR (BIDV demo, thay bằng bank của bạn nếu cần)
+                         // Cú pháp: https://img.vietqr.io/image/<BANK>-<TK>-compact.png?amount=<TIEN>&addInfo=<NOIDUNG>
+                         final memberId = context.read<AuthProvider643>().member?.id ?? "USER";
+                         // Giả lập Bank Acc: MBBank - 0333666999
+                         final url = "https://img.vietqr.io/image/MB-0333666999-compact.png?amount=${amount.toInt()}&addInfo=NAP TIEN $memberId";
+                         
+                         setModalState(() {
+                           _qrUrl = url;
+                         });
+                      },
+                      icon: const Icon(Icons.qr_code_2),
+                      label: const Text('TẠO MÃ QR CHUYỂN KHOẢN'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.shade100, 
+                        foregroundColor: Colors.blue.shade900
+                      ),
+                    ),
+
+                  // 3. Hiển thị QR nếu đã tạo
+                  if (_qrUrl != null) ...[
+                    const SizedBox(height: 15),
+                    Container(
+                      height: 200,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.blue.shade200),
+                        borderRadius: BorderRadius.circular(10),
+                        color: Colors.white
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.network(
+                          _qrUrl!,
+                          fit: BoxFit.contain,
+                          loadingBuilder: (ctx, child, loading) {
+                            if (loading == null) return child;
+                            return const Center(child: CircularProgressIndicator());
+                          },
+                          errorBuilder: (ctx, err, _) => const Center(child: Icon(Icons.error, color: Colors.red)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('Hãy quét mã trên bằng App Ngân hàng của bạn', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 13, fontStyle: FontStyle.italic)),
+                  ],
+
+                  const Divider(height: 30),
+
+                  // 4. Upload bằng chứng (Giữ nguyên logic cũ)
+                  const Text("Xác nhận đã chuyển khoản:", style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
                   
-                  // Image Picker
                   GestureDetector(
                     onTap: () async {
                       final ImagePicker picker = ImagePicker();
@@ -88,15 +142,15 @@ class _WalletScreenState extends State<WalletScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 15),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        border: Border.all(color: Colors.grey.shade400),
+                        color: _image != null ? Colors.green.shade50 : Colors.grey.shade100,
+                        border: Border.all(color: _image != null ? Colors.green : Colors.grey.shade400),
                         borderRadius: BorderRadius.circular(5),
                       ),
                       child: _image == null 
                           ? const Column(
                               children: [
                                 Icon(Icons.cloud_upload, color: Colors.grey),
-                                Text('Tải lên ảnh chuyển khoản', style: TextStyle(color: Colors.grey)),
+                                Text('Tải lên ảnh màn hình chuyển khoản', style: TextStyle(color: Colors.grey)),
                               ],
                             )
                           : Column(
@@ -109,6 +163,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   ),
                   const SizedBox(height: 20),
                   
+                  // 5. Nút Gửi Yêu Cầu
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -120,9 +175,9 @@ class _WalletScreenState extends State<WalletScreen> {
                          }
 
                          try {
-                            print("🔍 [Deposit] Starting deposit request...");
-                            print("🔍 [Deposit] Amount: $amount");
-                            
+                            // Show loading manual because we are in a modal
+                            showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+
                             final Map<String, dynamic> formMap = {
                               'Amount': amount,
                             };
@@ -130,34 +185,29 @@ class _WalletScreenState extends State<WalletScreen> {
                             if (_image != null) {
                               final bytes = await _image!.readAsBytes();
                               formMap['Image'] = import_dio.MultipartFile.fromBytes(bytes, filename: _image!.name);
-                              print("🔍 [Deposit] Image attached: ${_image!.name}");
                             }
 
                             final formData = import_dio.FormData.fromMap(formMap);
-                            print("🔍 [Deposit] Calling API: Members/deposit");
+                            await ApiService.postMultipart('Members/deposit', formData);
 
-                            final response = await ApiService.postMultipart('Members/deposit', formData);
-                            print("✅ [Deposit] Success: ${response.data}");
-
+                            // Close loading
                             Navigator.pop(context);
+                            // Close modal
+                            Navigator.pop(context);
+
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Đã gửi yêu cầu nạp tiền! Chờ Admin duyệt.'), backgroundColor: Colors.green)
+                              const SnackBar(content: Text('✅ Đã gửi yêu cầu! Admin sẽ duyệt sớm.'), backgroundColor: Colors.green)
                             );
-                            context.read<WalletProvider>().refresh(); // Reload history
+                            context.read<WalletProvider>().refresh();
                           } catch (e) {
-                            print("❌ [Deposit] Error: $e");
-                            if (e is import_dio.DioException) {
-                              print("🔍 Status Code: ${e.response?.statusCode}");
-                              print("🔍 Response: ${e.response?.data}");
-                              print("🔍 Request URL: ${e.requestOptions.uri}");
-                            }
+                            Navigator.pop(context); // Close loading if error
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text('Lỗi: ${e.toString()}'), backgroundColor: Colors.red)
                             );
                           }
                       },
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.green, padding: const EdgeInsets.all(15)),
-                      child: const Text('GỬI YÊU CẦU', style: TextStyle(color: Colors.white)),
+                      child: const Text('GỬI YÊU CẦU DUYỆT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -168,6 +218,85 @@ class _WalletScreenState extends State<WalletScreen> {
         );
       }
     );
+  }
+
+  Widget _buildVipProgress(BuildContext context) {
+     final member = context.watch<AuthProvider643>().member;
+     final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
+     
+     if (member == null) return const SizedBox.shrink();
+
+     double current = member.totalSpent;
+     double nextTarget = 0;
+     String nextTier = "";
+     Color nextColor = Colors.grey;
+
+     if (current < 2000000) {
+       nextTarget = 2000000;
+       nextTier = "BẠC (SILVER)";
+       nextColor = Colors.blueGrey;
+     } else if (current < 10000000) {
+       nextTarget = 10000000;
+       nextTier = "VÀNG (GOLD)";
+       nextColor = Colors.amber;
+     } else if (current < 30000000) {
+       nextTarget = 30000000;
+       nextTier = "KIM CƯƠNG (DIAMOND)";
+       nextColor = Colors.lightBlue.shade200;
+     } else {
+       return Container(
+         padding: const EdgeInsets.all(16),
+         margin: const EdgeInsets.all(16),
+         decoration: BoxDecoration(
+           gradient: LinearGradient(colors: [Colors.purple.shade200, Colors.blue.shade200]),
+           borderRadius: BorderRadius.circular(10)
+         ),
+         child: const Row(
+           children: [
+             Icon(Icons.diamond, color: Colors.white, size: 40),
+             SizedBox(width: 15),
+             Expanded(child: Text("Chúc mừng! Bạn đang ở hạng KIM CƯƠNG tối cao!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16))),
+           ],
+         ),
+       );
+     }
+
+     double percent = (current / nextTarget).clamp(0.0, 1.0);
+
+     return Container(
+       padding: const EdgeInsets.all(16),
+       width: double.infinity,
+       color: Colors.grey.shade50,
+       child: Column(
+         crossAxisAlignment: CrossAxisAlignment.start,
+         children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("Tiến độ thăng hạng", style: TextStyle(fontWeight: FontWeight.bold)),
+                Text("Đã chi: ${currencyFormat.format(current)}", style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            LinearProgressIndicator(
+              value: percent,
+              backgroundColor: Colors.grey.shade300,
+              color: nextColor,
+              minHeight: 10,
+              borderRadius: BorderRadius.circular(5),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Text("Mục tiêu kế tiếp: ", style: TextStyle(fontSize: 12)),
+                Text(nextTier, style: TextStyle(color: nextColor, fontWeight: FontWeight.bold, fontSize: 12)),
+                const Spacer(),
+                Text("Còn thiếu: ${currencyFormat.format(nextTarget - current)}", style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic)),
+              ],
+            )
+         ],
+       ),
+     );
   }
 
   @override
@@ -205,6 +334,8 @@ class _WalletScreenState extends State<WalletScreen> {
             ),
           ),
           
+          _buildVipProgress(context),
+
           Expanded(
             child: walletProvider.isLoading 
               ? const Center(child: CircularProgressIndicator())

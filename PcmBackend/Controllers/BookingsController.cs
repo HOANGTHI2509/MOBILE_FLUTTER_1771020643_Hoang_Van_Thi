@@ -34,23 +34,26 @@ public class BookingsController : ControllerBase
             .ToListAsync();
     }
 
-    // POST: api/bookings
-    [HttpPost]
-    public async Task<ActionResult<Booking>> CreateBooking(Booking booking)
+    // POST: api/bookings/hold
+    [HttpPost("hold")]
+    public async Task<ActionResult<Booking>> HoldBooking(Booking booking)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        // Fallback for 'sub'
+        if (string.IsNullOrEmpty(userId)) userId = User.FindFirstValue("sub");
+
         var member = await _context.Members.FirstOrDefaultAsync(m => m.UserId == userId);
         if (member == null) return NotFound("Member not found");
         
-        // 1. Check availability
+        // 1. Check availability (Including PendingPayment bookings to prevent race condition)
         var conflict = await _context.Bookings.AnyAsync(b => 
             b.CourtId == booking.CourtId && 
-            b.Status != BookingStatus.Cancelled &&
+            b.Status != BookingStatus.Cancelled && 
             ((booking.StartTime >= b.StartTime && booking.StartTime < b.EndTime) ||
              (booking.EndTime > b.StartTime && booking.EndTime <= b.EndTime) ||
              (booking.StartTime <= b.StartTime && booking.EndTime >= b.EndTime)));
              
-        if (conflict) return BadRequest("Court is already booked for this time slot.");
+        if (conflict) return BadRequest("Court is already booked or held by someone else.");
         
         // 2. Calculate price
         var court = await _context.Courts.FirstOrDefaultAsync(c => c.Id == booking.CourtId);
@@ -59,41 +62,73 @@ public class BookingsController : ControllerBase
         var durationHours = (decimal)(booking.EndTime - booking.StartTime).TotalHours;
         var totalPrice = durationHours * court.PricePerHour;
         
-        // 3. Check wallet
-        if (member.WalletBalance < totalPrice) return BadRequest("Insufficient wallet balance.");
-        
-        // 4. Process Payment
-        member.WalletBalance -= totalPrice;
-        member.TotalSpent += totalPrice;
-        
-        var transaction = new WalletTransaction
-        {
-            MemberId = member.Id,
-            Amount = -totalPrice,
-            Type = TransactionType.Payment,
-            Status = TransactionStatus.Completed,
-            Description = $"Booking Court {court.Name}",
-            CreatedDate = DateTime.Now
-        };
-        _context.WalletTransactions.Add(transaction);
-        await _context.SaveChangesAsync(); // Save to get Transaction Id
-        
-        // 5. Create Booking
+        // 3. Create Booking in PendingPayment state
         booking.MemberId = member.Id;
         booking.TotalPrice = totalPrice;
-        booking.TransactionId = transaction.Id;
-        booking.Status = BookingStatus.Confirmed;
+        booking.Status = BookingStatus.PendingPayment;
+        booking.CreatedDate = DateTime.Now; // Counts for 5 min expiration
         
         _context.Bookings.Add(booking);
         await _context.SaveChangesAsync();
+
+        // SignalR: Update others to see the held slot (maybe in gray/yellow)
+        await _hubContext.Clients.All.SendAsync("UpdateCalendar");
         
-        transaction.RelatedId = booking.Id.ToString();
+        return CreatedAtAction(nameof(GetCalendar), new { from = booking.StartTime, to = booking.EndTime }, booking);
+    }
+
+    [HttpPost("confirm/{id}")]
+    public async Task<IActionResult> ConfirmBooking(int id)
+    {
+        var booking = await _context.Bookings.FindAsync(id);
+        if (booking == null) return NotFound("Booking not found");
+
+        if (booking.Status == BookingStatus.Confirmed) return Ok(new { message = "Already confirmed" });
+        if (booking.Status == BookingStatus.Cancelled) return BadRequest("Booking held time expired");
+        if (booking.Status != BookingStatus.PendingPayment) return BadRequest("Invalid booking status");
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        // Fallback for 'sub'
+        if (string.IsNullOrEmpty(userId)) userId = User.FindFirstValue("sub");
+        
+        var member = await _context.Members.FirstOrDefaultAsync(m => m.UserId == userId);
+        if (member == null) return NotFound("User not found");
+        
+        // Check wallet
+        if (member.WalletBalance < booking.TotalPrice) 
+            return BadRequest($"Insufficient balance. Need {booking.TotalPrice:N0}");
+
+        // Deduct money
+        member.WalletBalance -= booking.TotalPrice;
+        member.TotalSpent += booking.TotalPrice;
+
+        // Auto Upgrade Tier
+        if (member.TotalSpent >= 30000000) member.Tier = MembershipTier.Diamond;
+        else if (member.TotalSpent >= 10000000) member.Tier = MembershipTier.Gold;
+        else if (member.TotalSpent >= 2000000) member.Tier = MembershipTier.Silver;
+
+        var transaction = new WalletTransaction
+        {
+            MemberId = member.Id,
+            Amount = -booking.TotalPrice,
+            Type = TransactionType.Payment,
+            Status = TransactionStatus.Completed,
+            Description = $"Booking Confirmed: Court {booking.CourtId}",
+            RelatedId = booking.Id.ToString(),
+            CreatedDate = DateTime.Now
+        };
+        _context.WalletTransactions.Add(transaction);
         await _context.SaveChangesAsync();
-        
-        // SignalR: Notify all clients
+
+        // Update Booking
+        booking.Status = BookingStatus.Confirmed;
+        booking.TransactionId = transaction.Id;
+        await _context.SaveChangesAsync();
+
+        // SignalR
         await _hubContext.Clients.All.SendAsync("UpdateCalendar");
 
-        return CreatedAtAction(nameof(GetCalendar), new { from = booking.StartTime, to = booking.EndTime }, booking);
+        return Ok(new { message = "Booking confirmed and paid successfully", transactionId = transaction.Id });
     }
     [HttpPost("recurring")]
     public async Task<IActionResult> CreateRecurringBooking([FromBody] RecurringBookingDto request)
@@ -104,6 +139,12 @@ public class BookingsController : ControllerBase
 
         // Validate
         if (request.EndDate <= request.StartDate) return BadRequest("End date must be after start date");
+
+        // Check VIP
+        if (member.Tier != MembershipTier.Gold && member.Tier != MembershipTier.Diamond)
+        {
+            return BadRequest("Chức năng đặt định kỳ chỉ dành cho thành viên hạng Vàng trở lên!");
+        }
         
         var court = await _context.Courts.FindAsync(request.CourtId);
         if (court == null) return NotFound("Court not found");
@@ -190,25 +231,37 @@ public class BookingsController : ControllerBase
 
         if (booking.Status == BookingStatus.Cancelled) return BadRequest("Already cancelled");
 
-        // Policy: 50% refund (50% penalty)
-        var refundAmount = booking.TotalPrice * 0.5m;
+        decimal refundAmount = 0;
+        decimal penalty = 0;
 
-        // Refund 50% to wallet
-        booking.Status = BookingStatus.Cancelled;
-        booking.Member.WalletBalance += refundAmount;
-
-        var transaction = new WalletTransaction
+        // If PendingPayment (Held but not paid), just cancel, no refund, no penalty
+        if (booking.Status == BookingStatus.PendingPayment)
         {
-            MemberId = booking.MemberId,
-            Amount = refundAmount,
-            Type = TransactionType.Refund,
-            Status = TransactionStatus.Completed,
-            Description = $"Hoàn tiền hủy sân (50% - Phí hủy: {booking.TotalPrice * 0.5m:N0}đ)",
-            RelatedId = booking.Id.ToString(),
-            CreatedDate = DateTime.Now
-        };
-        _context.WalletTransactions.Add(transaction);
-        
+            booking.Status = BookingStatus.Cancelled;
+            // No transaction needed implies no money moved
+        }
+        else if (booking.Status == BookingStatus.Confirmed)
+        {
+            // Policy: 50% refund (50% penalty)
+            refundAmount = booking.TotalPrice * 0.5m;
+            penalty = booking.TotalPrice * 0.5m;
+
+            booking.Status = BookingStatus.Cancelled;
+            booking.Member.WalletBalance += refundAmount;
+
+            var transaction = new WalletTransaction
+            {
+                MemberId = booking.MemberId,
+                Amount = refundAmount,
+                Type = TransactionType.Refund,
+                Status = TransactionStatus.Completed,
+                Description = $"Hoàn tiền hủy sân (50% - Phí hủy: {penalty:N0}đ)",
+                RelatedId = booking.Id.ToString(),
+                CreatedDate = DateTime.Now
+            };
+            _context.WalletTransactions.Add(transaction);
+        }
+
         await _context.SaveChangesAsync();
         
         // SignalR: Notify all clients
@@ -217,9 +270,37 @@ public class BookingsController : ControllerBase
         return Ok(new { 
             message = "Đã hủy sân thành công", 
             refundAmount = refundAmount,
-            penalty = booking.TotalPrice * 0.5m,
+            penalty = penalty,
             newBalance = booking.Member.WalletBalance 
         });
+    }
+    [HttpGet("my-history")]
+    public async Task<ActionResult<IEnumerable<object>>> GetMyBookingHistory()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        // Fallback for 'sub'
+        if (string.IsNullOrEmpty(userId)) userId = User.FindFirstValue("sub");
+
+        var member = await _context.Members.FirstOrDefaultAsync(m => m.UserId == userId);
+        if (member == null) return NotFound("Member not found");
+
+        var bookings = await _context.Bookings
+            .Include(b => b.Court)
+            .Where(b => b.MemberId == member.Id && (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Cancelled || b.Status == BookingStatus.Completed))
+            .OrderByDescending(b => b.StartTime)
+            .Select(b => new 
+            {
+                b.Id,
+                b.Court.Name,
+                b.StartTime,
+                b.EndTime,
+                b.TotalPrice,
+                b.Status, // Enum: 1=Confirmed, 2=Cancelled, 3=Completed
+                b.CreatedDate
+            })
+            .ToListAsync();
+
+        return Ok(bookings);
     }
 }
 
