@@ -6,10 +6,13 @@ import '../providers/auth_provider_643.dart';
 import '../providers/booking_provider.dart';
 import '../providers/court_provider.dart';
 import '../services/api_service.dart';
+import '../models/booking_643.dart';
 import 'booking_screen.dart';
 import 'user_schedule_screen.dart';
 import 'login_screen.dart';
 import 'admin_dashboard_screen.dart';
+import 'tournament_list_screen.dart';
+import 'wallet_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -91,7 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // Safely get bookings
     final bookingProvider = context.watch<BookingProvider>();
     final myBookings = bookingProvider.bookings
-        .where((b) => b.memberId == context.read<AuthProvider643>().member?.id && b.status == 1 && b.startTime.isAfter(DateTime.now()))
+        .where((b) => b.memberId == context.read<AuthProvider643>().member?.id && b.status == BookingStatus.Confirmed && b.startTime.isAfter(DateTime.now()))
         .toList();
     
     // Sort by startTime
@@ -285,13 +288,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: _buildMenuItem(
                             Icons.emoji_events, "Giải đấu", Colors.orange,
                             () {
-                       // Navigate to Tournament
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const TournamentListScreen()));
                     })),
                     const SizedBox(width: 10),
                     Expanded(
                         child: _buildMenuItem(
-                            Icons.group, "Cộng đồng", Colors.blue, () {
-                       // Navigate to Community
+                            Icons.account_balance_wallet, "Ví tiền", Colors.purple, () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const WalletScreen()));
                     })),
                     if (member?.isAdmin == true) ...[
                        const SizedBox(width: 10),

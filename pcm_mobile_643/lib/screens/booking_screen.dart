@@ -43,45 +43,79 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   // --- Step 1: Select Court ---
+  // --- Step 1: Select Court ---
   Widget _buildCourtList(List<Court643> courts) {
     // Remove Scaffold wrapper as it's now inside a TabBarView
     return ListView.builder(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         itemCount: courts.length,
         itemBuilder: (ctx, i) {
           final court = courts[i];
-          return Card(
-            elevation: 4,
-            margin: const EdgeInsets.only(bottom: 16),
-            child: InkWell(
-              onTap: () {
-                setState(() {
-                  _selectedCourt = court;
-                });
-              },
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    Container(
-                      height: 60, width: 60,
-                      decoration: BoxDecoration(color: Colors.green.shade100, borderRadius: BorderRadius.circular(10)),
-                      child: const Icon(Icons.sports_tennis, color: Colors.green, size: 30),
-                    ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(court.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 5),
-                          Text(NumberFormat.currency(locale: 'vi_VN', symbol: 'đ/h').format(court.pricePerHour), 
-                            style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-                        ],
+          // Gradient based on court type (Standard vs VIP)
+          List<Color> gradientColors = court.pricePerHour >= 150000 
+              ? [Colors.orange.shade300, Colors.deepOrange.shade400] 
+              : [Colors.green.shade300, Colors.teal.shade400];
+          
+          return Container(
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))]
+            ),
+            child: Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: () {
+                  setState(() {
+                    _selectedCourt = court;
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(15),
+                  child: Row(
+                    children: [
+                      Container(
+                        height: 80, width: 80,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(colors: gradientColors, begin: Alignment.topLeft, end: Alignment.bottomRight),
+                          borderRadius: BorderRadius.circular(15),
+                          boxShadow: [BoxShadow(color: gradientColors[0].withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4))]
+                        ),
+                        child: const Icon(Icons.sports_tennis, color: Colors.white, size: 40),
                       ),
-                    ),
-                    const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                  ],
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(court.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(8)
+                              ),
+                              child: Text(
+                                NumberFormat.currency(locale: 'vi_VN', symbol: 'đ/h').format(court.pricePerHour), 
+                                style: TextStyle(color: gradientColors[1], fontWeight: FontWeight.bold, fontSize: 14)
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          shape: BoxShape.circle
+                        ),
+                        child: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey.shade400),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -321,14 +355,20 @@ class _BookingScreenState extends State<BookingScreen> {
 
         if (conflict != null) {
           final currentMemberId = context.read<AuthProvider643>().member?.id;
+          final isMyBooking = currentMemberId != null && conflict.memberId.toString() == currentMemberId.toString();
+
           if (conflict.status == BookingStatus.PendingPayment) {
              return _buildSlotItem(hour, "Đang giữ", Colors.orange.shade100, Colors.deepOrange, null);
-          } else if (currentMemberId != null && conflict.memberId.toString() == currentMemberId.toString()) { // Ensure String comparison
-             return _buildSlotItem(hour, "Đã đặt", Colors.amber, Colors.black, () {
-               _showCancelDialog(conflict!);
-             });
           } else {
-             return _buildSlotItem(hour, "Đã kín", Colors.grey.shade400, Colors.white, null);
+             // Yêu cầu: Đã đặt thì màu vàng
+             // Nếu là của mình -> Cho phép hủy
+             return _buildSlotItem(
+               hour, 
+               isMyBooking ? "Của bạn" : "Đã kín", 
+               Colors.amber, // Màu vàng cho tất cả
+               Colors.black, 
+               isMyBooking ? () => _showCancelDialog(conflict!) : null // Chỉ mình mới được hủy
+             );
           }
         }
 
@@ -351,7 +391,7 @@ class _BookingScreenState extends State<BookingScreen> {
           children: [
             const Text("Bạn có chắc muốn hủy lịch đặt này không?"),
             const SizedBox(height: 10),
-            Text("Thời gian: ${DateFormat('HH:mm').format(booking.startTime)} - ${DateFormat('dd/MM').format(booking.startTime)}", style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text("Thời gian: ${DateFormat('HH:mm').format(booking.startTime)} - ${DateFormat('dd/MM/yyyy').format(booking.startTime)}", style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
             const Text("⚠️ Lưu ý: Phí hủy sân là 50% giá trị đặt sân.", style: TextStyle(color: Colors.red, fontStyle: FontStyle.italic)),
           ],
@@ -368,7 +408,8 @@ class _BookingScreenState extends State<BookingScreen> {
                
                if (result != null) {
                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã hủy sân thành công. Tiền hoàn đã cộng vào ví.')));
-                 _loadData();
+                 _loadData(); // Reload Calendar
+                 _loadHistory(); // Reload History Tab
                  context.read<WalletProvider>().refresh();
                } else {
                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Hủy thất bại. Vui lòng thử lại.')));
@@ -523,7 +564,8 @@ class _BookingScreenState extends State<BookingScreen> {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đặt sân THÀNH CÔNG!'), backgroundColor: Colors.green));
         auth.getProfile();
-        _loadData();
+        _loadData(); // Refresh Calendar
+        _loadHistory(); // Refresh History Tab
         context.read<WalletProvider>().refresh();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Thanh toán thất bại! Hết giờ hoặc không đủ tiền.'), backgroundColor: Colors.red));

@@ -12,88 +12,118 @@ class ProfileScreen extends StatelessWidget {
     final member = authProvider.member;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Hồ sơ cá nhân'), 
-        backgroundColor: Colors.green,
-        actions: [
-          IconButton(
-            onPressed: () async {
-              await authProvider.logout();
-              Navigator.pushAndRemoveUntil(
-                context, 
-                MaterialPageRoute(builder: (_) => const LoginScreen()), 
-                (route) => false
-              );
-            }, 
-            icon: const Icon(Icons.logout)
-          )
-        ],
-      ),
+      backgroundColor: Colors.grey.shade100,
       body: member == null 
         ? const Center(child: CircularProgressIndicator())
-        : ListView(
-            padding: const EdgeInsets.all(20),
+        : Column(
             children: [
-              const Center(
-                child: CircleAvatar(
-                  radius: 50,
-                   child: Icon(Icons.person, size: 50),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Center(
-                child: Text(member.fullName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              ),
-              Center(
-                child: _buildTierBadge(member.tier),
-              ),
-              const SizedBox(height: 30),
-              _buildProfileItem(Icons.email, 'Email', member.email),
-              const Divider(),
-              _buildProfileItem(Icons.phone, 'Số điện thoại', '0987654321'), // Fake data
-              const Divider(),
-              _buildProfileItem(Icons.military_tech, 'Điểm Rank', '3.5'), // Fake data
-              
-              const SizedBox(height: 40),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    authProvider.logout();
-                     Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                      (route) => false,
-                    );
-                  }, 
-                  icon: const Icon(Icons.logout, color: Colors.white),
-                  label: const Text('ĐĂNG XUẤT', style: TextStyle(color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    minimumSize: const Size(double.infinity, 50)
-                  ),
-                ),
-              )
+               Stack(
+                 clipBehavior: Clip.none,
+                 alignment: Alignment.center,
+                 children: [
+                    Container(
+                      height: 180,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(colors: [Colors.green, Colors.teal]),
+                        borderRadius: BorderRadius.vertical(bottom: Radius.circular(30))
+                      ),
+                    ),
+                    Positioned(
+                      top: 40, right: 10,
+                      child: IconButton(
+                        icon: const Icon(Icons.settings, color: Colors.white),
+                        onPressed: () {}, // Settings placeholder
+                      ),
+                    ),
+                    Positioned(
+                      bottom: -50,
+                      child: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)]),
+                        child: const CircleAvatar(
+                          radius: 60,
+                          backgroundColor: Colors.grey,
+                          child: Icon(Icons.person, size: 60, color: Colors.white),
+                        ),
+                      ),
+                    )
+                 ],
+               ),
+               const SizedBox(height: 60),
+
+               Text(member.fullName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+               const SizedBox(height: 5),
+               _buildTierBadge(member.tier),
+               
+               const SizedBox(height: 30),
+
+               Expanded(
+                 child: ListView(
+                   padding: const EdgeInsets.symmetric(horizontal: 20),
+                   children: [
+                      _buildProfileCard(
+                        icon: Icons.email, 
+                        title: "Email", 
+                        subtitle: member.email,
+                        color: Colors.blue
+                      ),
+                      _buildProfileCard(
+                        icon: Icons.phone, 
+                        title: "Số điện thoại", 
+                        subtitle: "0987654321", // Fake data
+                        color: Colors.orange
+                      ),
+                      _buildProfileCard(
+                        icon: Icons.military_tech, 
+                        title: "Điểm Rank", 
+                        subtitle: "3.5", // Fake data
+                        color: Colors.purple
+                      ),
+                      
+                      const SizedBox(height: 30),
+                      
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          authProvider.logout();
+                           Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (_) => const LoginScreen()),
+                            (route) => false,
+                          );
+                        }, 
+                        icon: const Icon(Icons.logout, color: Colors.white),
+                        label: const Text('ĐĂNG XUẤT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                          elevation: 2
+                        ),
+                      )
+                   ],
+                 ),
+               )
             ],
           ),
     );
   }
 
-  Widget _buildProfileItem(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.green),
-          const SizedBox(width: 15),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-              Text(value, style: const TextStyle(fontSize: 16)),
-            ],
-          )
-        ],
+  Widget _buildProfileCard({required IconData icon, required String title, required String subtitle, required Color color}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))]
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+          child: Icon(icon, color: color),
+        ),
+        title: Text(title, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
       ),
     );
   }
@@ -101,6 +131,7 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildTierBadge(String tier) {
     Color color;
     IconData icon;
+    String text = tier.toUpperCase();
     
     switch (tier.toLowerCase()) {
       case 'gold':
@@ -108,7 +139,7 @@ class ProfileScreen extends StatelessWidget {
         icon = Icons.star;
         break;
       case 'diamond':
-        color = Colors.blue.shade300;
+        color = Colors.cyan;
         icon = Icons.diamond;
         break;
       case 'silver':
@@ -116,24 +147,23 @@ class ProfileScreen extends StatelessWidget {
         icon = Icons.shield;
         break;
       default:
-        color = Colors.brown.shade300; // Bronze/Standard
+        color = Colors.brown; // Bronze/Standard
         icon = Icons.person;
     }
 
     return Container(
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        border: Border.all(color: color),
-        borderRadius: BorderRadius.circular(20)
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.5))
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 20),
+          Icon(icon, color: color, size: 16),
           const SizedBox(width: 8),
-          Text(tier.toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+          Text(text, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)),
         ],
       ),
     );
