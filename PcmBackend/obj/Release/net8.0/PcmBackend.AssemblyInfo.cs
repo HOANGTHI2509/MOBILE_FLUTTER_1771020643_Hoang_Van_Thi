@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PcmBackend")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+12fae4e1819303ea877e99d7372d880ab846496c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c9336e9040228544308205e51fc47ee4eb20ab4d")]
 [assembly: System.Reflection.AssemblyProductAttribute("PcmBackend")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PcmBackend")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

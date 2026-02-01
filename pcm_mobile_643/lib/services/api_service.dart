@@ -9,7 +9,10 @@ class ApiService {
   // Logic tự động chọn URL dựa trên môi trường chạy (Web, Android Emulator, iOS/Windows)
   static String get baseUrl {
     // Để deploy lên VPS, ta dùng IP của VPS
-    return 'http://103.77.172.159:5000'; 
+    return 'http://103.77.172.159:5299'; 
+    
+    // Chạy Local (Máy thật Android cùng Wifi)
+    // return 'http://192.168.31.132:5282'; 
     
     // Logic tự động
     // if (kIsWeb) {

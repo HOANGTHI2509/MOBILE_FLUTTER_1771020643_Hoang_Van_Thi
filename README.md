@@ -69,11 +69,22 @@ Dự án đã bao gồm bộ script tự động deploy lên VPS Ubuntu.
    - App sẽ tự động chạy tại port **5000**.
    - API URL: `http://<VPS_IP>:5000`
 
-## 4. Tài khoản Admin mặc định
+## 4. Thông tin Sinh viên & Demo
+### Thông tin Sinh viên
+| Thông tin | Chi tiết |
+| :--- | :--- |
+| **Trường** | Đại Học Đại Nam |
+| **Họ và tên** | Hoàng Văn Thi |
+| **Mã Sinh Viên** | 1771020643 |
+| **Lớp** | CNTT 17-07 |
 
-Sau khi khởi chạy, hệ thống sẽ tự động tạo tài khoản Admin:
-- **Email**: `admin@pcm.com`
-- **Mật khẩu**: `Pcm@123456`
+### Tài khoản Demo
+Dưới đây là danh sách tài khoản để kiểm tra hệ thống:
+
+| Vai trò (Role) | Email | Mật khẩu (Password) | Mô tả |
+| :--- | :--- | :--- | :--- |
+| **Admin** | `admin@pcm.com` | `Pcm@123456` | Quản trị viên hệ thống (mặc định) |
+| **User** | `test5@gmail.com` | `admin123` | Người dùng đã đăng ký trước |
 
 ## 5. File cài đặt (APK)
 File APK (Android) đã build sẵn nằm tại:

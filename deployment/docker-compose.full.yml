@@ -1,0 +1,35 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sql_server_pcm
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=YourStrong@Passw0rd!
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - sql_data:/var/opt/mssql
+    restart: always
+
+  backend:
+    build:
+      context: ../PcmBackend
+      dockerfile: Dockerfile
+    container_name: pcm_backend
+    ports:
+      - "5299:5000"
+    environment:
+      - ASPNETCORE_URLS=http://+:5000
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=PcmDb;User Id=sa;Password=YourStrong@Passw0rd!;TrustServerCertificate=True;
+      # Cấu hình JWT giống trong appsettings
+      - JwtSettings__SecretKey=YourSuperSecretKey_ThisShouldBeChangedInProduction
+      - JwtSettings__Issuer=PcmBackend
+      - JwtSettings__Audience=PcmMobileUsers
+      - JwtSettings__DurationInMinutes=60
+    depends_on:
+      - sqlserver
+    restart: always
+
+volumes:
+  sql_data:
