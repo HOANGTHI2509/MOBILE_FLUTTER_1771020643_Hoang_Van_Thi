@@ -1,6 +1,24 @@
-# Pickleball Court Management System (PCM) - Mobile & Backend
+# Pickleball Court Management System (PCM)
 
-Dự án quản lý sân Pickleball bao gồm Backend (.NET 8) và Frontend Mobile App (Flutter).
+**Hệ thống Quản lý Sân Pickleball (PCM)** là giải pháp công nghệ toàn diện giúp tối ưu hóa vận hành sân bãi và nâng cao trải nghiệm người chơi. Dự án kết hợp sức mạnh của **Backend .NET 8** hiệu năng cao và **Mobile App Flutter** đa nền tảng, mang đến quy trình đặt sân, thanh toán và quản lý giải đấu mượt mà, chuyên nghiệp.
+
+## Các Chức Năng Chính (Key Features)
+
+Hệ thống được chia thành 2 phân hệ chính phục vụ tối đa nhu cầu của người dùng và nhà quản lý:
+
+### 1. Dành cho Người chơi (User)
+- **Đặt sân trực tuyến (Booking)**: Tìm kiếm và đặt sân trống theo thời gian thực dễ dàng.
+- **Ví điện tử (Wallet)**: Nạp tiền, thanh toán nhanh chóng và quản lý lịch sử giao dịch.
+- **Lịch trình cá nhân**: Theo dõi lịch đặt sân, nhắc nhở giờ chơi sắp tới.
+- **Giải đấu (Tournament)**: Xem danh sách giải đấu, đăng ký tham gia và theo dõi kết quả.
+- **Hồ sơ cá nhân**: Quản lý thông tin tài khoản và lịch sử hoạt động.
+
+### 2. Dành cho Quản trị viên (Admin)
+- **Dashboard thông minh**: Thống kê doanh thu, số lượng thành viên và lượt đặt sân trực quan.
+- **Quản lý Sân (Courts)**: Thêm, sửa, xóa thông tin sân bãi, giá thuê linh hoạt.
+- **Quản lý Hội viên (Members)**: Kiểm soát danh sách người dùng, trạng thái hoạt động.
+- **Tài chính (Finance)**: Xét duyệt nạp tiền, theo dõi dòng tiền hệ thống.
+- **Quản lý Giải đấu**: Tạo giải đấu mới, sắp xếp lịch thi đấu (Bracket) và cập nhật tin tức.
 
 ## 1. Công nghệ sử dụng
 - **Backend**: ASP.NET Core 8.0 Web API
