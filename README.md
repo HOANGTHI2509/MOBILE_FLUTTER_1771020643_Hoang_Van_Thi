@@ -87,5 +87,15 @@ Dưới đây là danh sách tài khoản để kiểm tra hệ thống:
 | **User** | `test5@gmail.com` | `admin123` | Người dùng đã đăng ký trước |
 
 ## 5. File cài đặt (APK)
-File APK (Android) đã build sẵn nằm tại:
-`pcm_mobile_643/build/app/outputs/flutter-apk/app-release.apk`
+
+Ứng dụng đã được build sẵn file cài đặt cho Android. Bạn có thể tìm thấy file APK tại đường dẫn sau trong source code:
+
+| Loại file | Đường dẫn (Path) |
+| :--- | :--- |
+| **Android APK** | `pcm_mobile_643/build/app/outputs/flutter-apk/app-release.apk` |
+
+### Hướng dẫn cài đặt nhanh:
+1. Copy file `app-release.apk` vào điện thoại Android.
+2. Mở trình quản lý file trên điện thoại, tìm đến file APK.
+3. Nhấn vào file và chọn **Install** (Cài đặt).
+   *(Lưu ý: Nếu điện thoại chặn, hãy vào Cài đặt -> Bảo mật -> Cho phép cài ứng dụng từ nguồn không xác định)*.
